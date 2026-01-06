@@ -207,6 +207,7 @@ async function getExamLeaderboard(req, res, next) {
       const userId = sub.userId?._id
         ? String(sub.userId._id)
         : (sub.isGuest && sub.guestName ? `guest_${sub.guestName}` : `submission_${sub._id}`);
+
       if (!userSubmissionsMap[userId]) {
         userSubmissionsMap[userId] = sub;
       } else {
@@ -356,6 +357,7 @@ async function getExamSubmissions(req, res, next) {
         const userId = sub.userId?._id
           ? String(sub.userId._id)
           : (sub.isGuest && sub.guestName ? `guest_${sub.guestName}` : `submission_${sub._id}`);
+
         if (!userSubmissionsMap[userId]) {
           userSubmissionsMap[userId] = sub;
         } else {
@@ -1050,6 +1052,7 @@ async function getScoreDistribution(req, res, next) {
       const userId = sub.userId?._id
         ? String(sub.userId._id)
         : (sub.isGuest && sub.guestName ? `guest_${sub.guestName}` : `submission_${sub._id}`);
+
       if (!userSubmissionsMap[userId]) {
         userSubmissionsMap[userId] = [];
       }

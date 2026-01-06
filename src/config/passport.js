@@ -28,7 +28,6 @@ passport.use(new GoogleStrategy(
           name,
           email,
           password: 'oauth_google', 
-          role: 'student',
           status: 'active',
           profile: { avatar: picture }
         });

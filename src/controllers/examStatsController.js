@@ -203,10 +203,10 @@ async function getExamLeaderboard(req, res, next) {
     // Group submissions by userId and get the latest submission for each user
     const userSubmissionsMap = {};
     submissions.forEach(sub => {
-      // Skip if userId is missing (user might be deleted)
-      if (!sub.userId || !sub.userId._id) return;
-
-      const userId = String(sub.userId._id);
+      // For guest submissions, userId is null, use guestName or submission _id as key
+      const userId = sub.userId?._id
+        ? String(sub.userId._id)
+        : (sub.isGuest && sub.guestName ? `guest_${sub.guestName}` : `submission_${sub._id}`);
       if (!userSubmissionsMap[userId]) {
         userSubmissionsMap[userId] = sub;
       } else {
@@ -251,13 +251,21 @@ async function getExamLeaderboard(req, res, next) {
     const paginatedSubmissions = latestSubmissions.slice(skip, skip + nLimit);
     const leaderboard = paginatedSubmissions.map((submission, index) => ({
       rank: skip + index + 1, // Rank based on global position
-      student: {
+      student: submission.userId ? {
         _id: submission.userId._id,
         name: submission.userId.name,
         email: submission.userId.email,
         avatar: submission.userId.profile?.avatar || null,
         studentCode: submission.userId.studentCode
+      } : {
+        _id: null,
+        name: submission.guestName || 'Guest',
+        email: null,
+        avatar: null,
+        studentCode: null,
+        isGuest: true
       },
+      isGuest: submission.isGuest || false,
       score: submission.score,
       totalMarks: submission.maxScore,
       percentage: submission.percentage,
@@ -341,13 +349,13 @@ async function getExamSubmissions(req, res, next) {
 
     // If all=true, return all submissions. Otherwise, return only the most recent submission for each user
     if (all !== 'true') {
-      // Group submissions by userId and get the most recent one for each user
+      // Group submissions by userId (or guestName for guest submissions) and get the most recent one for each user
       const userSubmissionsMap = {};
       submissions.forEach(sub => {
-        // Skip if userId is missing (user might be deleted)
-        if (!sub.userId || !sub.userId._id) return;
-
-        const userId = String(sub.userId._id);
+        // For guest submissions, userId is null, use guestName or submission _id as key
+        const userId = sub.userId?._id
+          ? String(sub.userId._id)
+          : (sub.isGuest && sub.guestName ? `guest_${sub.guestName}` : `submission_${sub._id}`);
         if (!userSubmissionsMap[userId]) {
           userSubmissionsMap[userId] = sub;
         } else {
@@ -399,13 +407,23 @@ async function getExamSubmissions(req, res, next) {
 
     const formattedSubmissions = paginatedSubmissions.map(submission => ({
       _id: submission._id,
-      student: {
-        _id: submission.userId?._id,
-        name: submission.userId?.name || 'Unknown User',
-        email: submission.userId?.email || '',
-        avatar: submission.userId?.profile?.avatar || null,
-        studentCode: submission.userId?.studentCode || ''
+      student: submission.userId ? {
+        _id: submission.userId._id,
+        name: submission.userId.name,
+        email: submission.userId.email,
+        avatar: submission.userId.profile?.avatar || null,
+        studentCode: submission.userId.studentCode
+      } : {
+        // Guest submission - use guestName
+        _id: null,
+        name: submission.guestName || 'Guest',
+        email: null,
+        avatar: null,
+        studentCode: null,
+        isGuest: true
       },
+      isGuest: submission.isGuest || false,
+      guestName: submission.guestName || null,
       status: submission.status,
       score: submission.score,
       totalMarks: submission.maxScore,
@@ -548,13 +566,21 @@ async function getStudentSubmissionDetail(req, res, next) {
           description: exam.description,
           totalMarks: exam.totalMarks
         },
-        student: {
+        student: submission.userId ? {
           _id: submission.userId._id,
           name: submission.userId.name,
           email: submission.userId.email,
           avatar: submission.userId.profile?.avatar || null,
           studentCode: submission.userId.studentCode
+        } : {
+          _id: null,
+          name: submission.guestName || 'Guest',
+          email: null,
+          avatar: null,
+          studentCode: null,
+          isGuest: true
         },
+        isGuest: submission.isGuest || false,
         score: submission.score,
         totalMarks: submission.maxScore,
         percentage: submission.percentage,
@@ -680,13 +706,21 @@ async function getSubmissionDetailById(req, res, next) {
           description: exam.description,
           totalMarks: exam.totalMarks
         },
-        student: {
+        student: submission.userId ? {
           _id: submission.userId._id,
           name: submission.userId.name,
           email: submission.userId.email,
           avatar: submission.userId.profile?.avatar || null,
           studentCode: submission.userId.studentCode
+        } : {
+          _id: null,
+          name: submission.guestName || 'Guest',
+          email: null,
+          avatar: null,
+          studentCode: null,
+          isGuest: true
         },
+        isGuest: submission.isGuest || false,
         score: submission.score,
         totalMarks: submission.maxScore,
         percentage: submission.percentage,
@@ -1009,13 +1043,13 @@ async function getScoreDistribution(req, res, next) {
       });
     }
 
-    // Group submissions by userId
+    // Group submissions by userId (or guestName for guest submissions)
     const userSubmissionsMap = {};
     submissions.forEach(sub => {
-      // Skip if userId is missing
-      if (!sub.userId || !sub.userId._id) return;
-
-      const userId = String(sub.userId._id);
+      // For guest submissions, userId is null, use guestName or submission _id as key
+      const userId = sub.userId?._id
+        ? String(sub.userId._id)
+        : (sub.isGuest && sub.guestName ? `guest_${sub.guestName}` : `submission_${sub._id}`);
       if (!userSubmissionsMap[userId]) {
         userSubmissionsMap[userId] = [];
       }

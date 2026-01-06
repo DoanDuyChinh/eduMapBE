@@ -194,6 +194,70 @@ async function getExamLeaderboard(req, res, next) {
  * Gets current user's submissions
  * GET /v1/api/submissions/me
  */
+/**
+ * Updates submission face image (for proctoring)
+ * POST /v1/api/submissions/:id/face-image
+ */
+async function updateFaceImage(req, res, next) {
+  try {
+    const { id } = req.params;
+    const user = req.user;
+
+    // Check if file is uploaded
+    if (!req.file) {
+      return res.status(400).json({ ok: false, message: 'No image file uploaded' });
+    }
+
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({ ok: false, message: 'Invalid submission ID format' });
+    }
+
+    // Upload to Cloudinary using stream
+    const cloudinary = require('../config/cloudinary');
+    const streamifier = require('streamifier');
+
+    const streamUpload = (req) => {
+      return new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          {
+            folder: 'proctoring/faces',
+            allowed_formats: ['jpg', 'png', 'jpeg', 'webp'],
+            public_id: `face_${id}_${Date.now()}`
+          },
+          (error, result) => {
+            if (result) {
+              resolve(result);
+            } else {
+              reject(error);
+            }
+          }
+        );
+        streamifier.createReadStream(req.file.buffer).pipe(stream);
+      });
+    };
+
+    const uploadResult = await streamUpload(req);
+    const imageUrl = uploadResult.secure_url;
+
+    // Update submission
+    const Submission = require('../models/Submission');
+    const submission = await Submission.findOneAndUpdate(
+      { _id: id, userId: user.id },
+      { $set: { 'proctoringData.referenceFaceImage': imageUrl } },
+      { new: true }
+    );
+
+    if (!submission) {
+      return res.status(404).json({ ok: false, message: 'Submission not found or unauthorized' });
+    }
+
+    res.json({ ok: true, data: { imageUrl } });
+  } catch (error) {
+    console.error('Error updating face image:', error);
+    next(error);
+  }
+}
+
 async function getMySubmissions(req, res, next) {
   try {
     const user = req.user;
@@ -225,6 +289,7 @@ module.exports = {
   getSubmissionById,
   getExamSubmissions,
   getExamLeaderboard,
-  getMySubmissions
+  getMySubmissions,
+  updateFaceImage
 };
 

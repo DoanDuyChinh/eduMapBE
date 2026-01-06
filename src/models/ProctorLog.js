@@ -20,7 +20,7 @@ const ProctorLogSchema = new mongoose.Schema({
   },
   event: {
     type: String,
-    enum: ['visibility', 'fullscreen', 'beforeunload', 'warning', 'tab_switch', 'copy_paste', 'right_click', 'no_face', 'multiple_faces', 'camera_denied'],
+    enum: ['visibility', 'fullscreen', 'beforeunload', 'warning', 'tab_switch', 'copy_paste', 'right_click', 'no_face', 'multiple_faces', 'camera_denied', 'face_mismatch'],
     required: true
   },
   severity: {
@@ -33,15 +33,8 @@ const ProctorLogSchema = new mongoose.Schema({
     default: Date.now
   },
   meta: {
-    visible: Boolean,
-    reason: String,
-    url: String,
-    userAgent: String,
-    ip: String,
-    coordinates: {
-      x: Number,
-      y: Number
-    }
+    type: mongoose.Schema.Types.Mixed,
+    default: {}
   }
 }, {
   timestamps: true

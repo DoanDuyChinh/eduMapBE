@@ -18,6 +18,10 @@ router.patch('/:id/answers', auth, submissionController.updateAnswers);
 // Submit exam
 router.post('/:id/submit', auth, submissionController.submitExam);
 
+// Update reference face image
+const upload = require('../middlewares/upload');
+router.post('/:id/face-image', auth, upload.single('image'), submissionController.updateFaceImage);
+
 // Get all submissions for an exam (teacher/admin only)
 router.get('/exam/:examId', auth, submissionController.getExamSubmissions);
 

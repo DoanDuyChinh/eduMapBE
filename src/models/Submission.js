@@ -86,7 +86,8 @@ const SubmissionSchema = new mongoose.Schema({
   proctoringData: {
     violations: [String],
     screenshots: [String],
-    warnings: [String]
+    warnings: [String],
+    referenceFaceImage: String
   },
   aiAnalysis: {
     type: String,

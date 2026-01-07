@@ -730,7 +730,8 @@ async function getSubmissionDetailById(req, res, next) {
         startedAt: submission.startedAt,
         submittedAt: submission.submittedAt,
         answers: formattedAnswers,
-        suspiciousActivities: Object.values(suspiciousActivitySummary)
+        suspiciousActivities: Object.values(suspiciousActivitySummary),
+        proctoringData: submission.proctoringData
       }
     });
   } catch (error) {

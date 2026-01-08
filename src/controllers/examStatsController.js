@@ -807,6 +807,7 @@ async function getSubmissionActivityLog(req, res, next) {
       action: log.event, // Use event as action
       severity: log.severity,
       isSuspicious: log.severity === 'high' || log.severity === 'critical', // Determine suspicious based on severity
+      evidenceUrl: log.evidenceUrl, // Ensure evidenceUrl is passed
       meta: {
         ...log.meta,
         visible: log.meta?.visible,

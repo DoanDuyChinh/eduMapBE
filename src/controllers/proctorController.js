@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
 const ProctorLog = require('../models/ProctorLog');
 const Submission = require('../models/Submission');
+const cloudinary = require('../config/cloudinary');
+const streamifier = require('streamifier');
 
 /**
  * Logs a proctoring event
@@ -9,6 +11,18 @@ const Submission = require('../models/Submission');
 async function logEvent(req, res, next) {
   try {
     const { submissionId, event, severity, meta } = req.body;
+
+    // DEBUG LOG
+
+
+    let parsedMeta = meta;
+    if (typeof meta === 'string') {
+      try {
+        parsedMeta = JSON.parse(meta);
+      } catch (e) {
+        parsedMeta = {};
+      }
+    }
     const user = req.user;
 
     if (!submissionId) {
@@ -41,11 +55,43 @@ async function logEvent(req, res, next) {
       event,
       severity: severity || 'low',
       meta: {
-        ...meta,
+        ...parsedMeta,
         userAgent: req.headers['user-agent'],
         ip: req.ip || req.connection.remoteAddress
       }
     };
+
+    // Handle Image Upload if present
+    if (req.file) {
+      try {
+        const streamUpload = (fileBuffer) => {
+          return new Promise((resolve, reject) => {
+            const stream = cloudinary.uploader.upload_stream(
+              {
+                folder: 'proctoring/evidence',
+                resource_type: 'image',
+                allowed_formats: ['jpg', 'png', 'jpeg', 'webp']
+              },
+              (error, result) => {
+                if (result) {
+                  resolve(result);
+                } else {
+                  reject(error);
+                }
+              }
+            );
+            streamifier.createReadStream(fileBuffer).pipe(stream);
+          });
+        };
+
+        const result = await streamUpload(req.file.buffer);
+        logData.evidenceUrl = result.secure_url;
+      } catch (uploadError) {
+        console.error('Proctor evidence upload failed:', uploadError);
+        // Continue logging even if upload fails, but maybe note it in meta
+        logData.meta.uploadError = uploadError.message;
+      }
+    }
 
     // Only add orgId if it exists
     if (user.orgId || submission.orgId) {
@@ -56,26 +102,22 @@ async function logEvent(req, res, next) {
 
     await log.save();
 
-    // Update submission proctoring data if severity is high
+    // Update submission proctoring data if severity is high (Atomic Update)
     if (severity === 'high' || severity === 'critical') {
-      if (!submission.proctoringData) {
-        submission.proctoringData = {
-          violations: [],
-          screenshots: [],
-          warnings: []
-        };
-      }
+      const timestamp = new Date().toISOString();
+      const updateField = ['tab_switch', 'copy_paste', 'right_click', 'multiple_faces', 'camera_denied', 'no_face', 'face_mismatch'].includes(event)
+        ? 'proctoringData.violations'
+        : 'proctoringData.warnings';
 
-      if (['tab_switch', 'copy_paste', 'right_click', 'multiple_faces', 'camera_denied'].includes(event)) {
-        submission.proctoringData.violations.push(`${event}: ${new Date().toISOString()}`);
-      } else {
-        submission.proctoringData.warnings.push(`${event}: ${new Date().toISOString()}`);
-      }
-
-      await submission.save();
+      await Submission.findByIdAndUpdate(submissionId, {
+        $push: { [updateField]: `${event}: ${timestamp}` }
+      });
     }
 
-    res.status(201).json({ ok: true, data: log });
+    res.status(201).json({
+      ok: true,
+      data: log
+    });
   } catch (error) {
     if (error?.status) {
       return res.status(error.status).json({ ok: false, message: error.message });

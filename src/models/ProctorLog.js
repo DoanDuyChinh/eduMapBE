@@ -35,6 +35,10 @@ const ProctorLogSchema = new mongoose.Schema({
   meta: {
     type: mongoose.Schema.Types.Mixed,
     default: {}
+  },
+  evidenceUrl: {
+    type: String,
+    required: false
   }
 }, {
   timestamps: true

@@ -3,8 +3,10 @@ const router = express.Router();
 const proctorController = require('../controllers/proctorController');
 const auth = require('../middlewares/auth');
 
+const upload = require('../middlewares/upload');
+
 // Log proctoring event
-router.post('/log', auth, proctorController.logEvent);
+router.post('/log', auth, upload.single('image'), proctorController.logEvent);
 
 // Get logs for a submission
 router.get('/submission/:submissionId', auth, proctorController.getSubmissionLogs);

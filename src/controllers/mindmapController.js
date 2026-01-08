@@ -721,8 +721,7 @@ const mindmapController = {
                 return res.status(400).json({ success: false, message: 'Invalid request parameters' });
             }
 
-            // --- AI Generation Logic (Reused) ---
-            // --- AI Generation Logic (Reused) ---
+            // AI Generation Logic
             const targetLanguage = (language === 'en' || language === 'en-US') ? 'English' : (language === 'jp' || language === 'ja' || language === 'ja-JP') ? 'Japanese' : 'Vietnamese';
             const aiPrompt = `You are an expert mindmap creator. Create a mindmap based on the following request:
 
